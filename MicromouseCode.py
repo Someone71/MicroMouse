@@ -138,7 +138,46 @@ def setup():
       global decoder_R
       decoder_L = rotary_encoder.decoder(pi, 5, 6, callback_L)
       decoder_R = rotary_encoder.decoder(pi, 12, 13, callback_R)
+
+def turn(encL, encR):
+      global pos_L, pos_R
       
+      resetMotor()
+      
+      #setup PID for turning (dt is time stamp, Dt is derivative term)
+      turn_pid_L = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
+      turn_pid_R = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
+
+      #sets target values for the encoder 
+      desiredEncL = pos_L + encL
+      desiredEncR = pos_R - encR
+      
+      #timer stuff
+      prev_time = time.perf_counter() - dt_target
+      
+      while True:
+            #more timer stuff
+            curr_time = time.perf_counter()
+            dt = curr_time - prev_time
+            prev_time = curr_time
+            
+            #print(dt)
+            
+            #determines the speed of the motor
+            outputL = turn_pid_L.control(desiredEncL, pos_L)
+            outputR = turn_pid_R.control(desiredEncR, pos_R)
+            #print(outputL)
+            #print(outputR)
+            motorMove(outputL, outputR, dt)
+            #motorMove(25, 25, dt)
+            time.sleep(dt_target)
+            
+            #exits loop once desired turn is achieved
+            if(abs(desiredEncL - pos_L) < 15 and abs(pos_R - desiredEncR) < 15):
+                  resetMotor()
+                  print("Broke out of while loop")
+                  break
+
 def turnRight():
       global pos_L, pos_R
       
