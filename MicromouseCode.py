@@ -18,6 +18,10 @@ import VL53L0X
 
 import threading
 
+global left
+global right
+global front
+
 #sys.path.insert(0, '/home/someone/Micromouse/MinIMU-9-v5')
 #from MinIMU_v5_pi import MinIMU_v5_pi
 
@@ -41,14 +45,19 @@ tof3 = VL53L0X.VL53L0X(address=0x2E)
 dt_target = 0.05
 
 #motor speed control pid
-Pm = 1.2
-Im = 2
-Dm = 0
+Ps = 1.2
+Is = 2
+Ds = 0
 
 #motor turning pid
-Pt = 0.12 #0.12
-It = 0.071 #0.1
+Pt = 0.07 #0.12
+It = 0.02 #0.1
 Dt = 0 #0.0067
+
+#motor move pid
+Pm = 0.02 #0.12
+Im = 0.0014 #0.1
+Dm = 0 #0.0067
 
 #more stuff for motor setup
 output_L = 0
@@ -69,8 +78,8 @@ desiredEncL = 0
 desiredEncR = 0
 
 #sets up the PID
-pid_L = PID(dt_target, Pm, Im, Dm, 100, -100, tau=taupid)
-pid_R = PID(dt_target, Pm, Im, Dm, 100, -100, tau=taupid)
+pid_L = PID(dt_target, Ps, Is, Ds, 100, -100, tau=taupid)
+pid_R = PID(dt_target, Ps, Is, Ds, 100, -100, tau=taupid)
 
 #pins for motor control
 pin1 = 22
@@ -87,7 +96,7 @@ GPIO.setmode(GPIO.BCM)
 def setup():
       #IMU.trackYaw()
       #IMU.trackAngle()
-      #print('Starting program...')
+      print('Starting program...')
       #motor shit
       GPIO.setup(pin1, GPIO.OUT)
       GPIO.setup(pin2, GPIO.OUT)
@@ -138,46 +147,7 @@ def setup():
       global decoder_R
       decoder_L = rotary_encoder.decoder(pi, 5, 6, callback_L)
       decoder_R = rotary_encoder.decoder(pi, 12, 13, callback_R)
-
-def turn(encL, encR):
-      global pos_L, pos_R
       
-      resetMotor()
-      
-      #setup PID for turning (dt is time stamp, Dt is derivative term)
-      turn_pid_L = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
-      turn_pid_R = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
-
-      #sets target values for the encoder 
-      desiredEncL = pos_L + encL
-      desiredEncR = pos_R - encR
-      
-      #timer stuff
-      prev_time = time.perf_counter() - dt_target
-      
-      while True:
-            #more timer stuff
-            curr_time = time.perf_counter()
-            dt = curr_time - prev_time
-            prev_time = curr_time
-            
-            #print(dt)
-            
-            #determines the speed of the motor
-            outputL = turn_pid_L.control(desiredEncL, pos_L)
-            outputR = turn_pid_R.control(desiredEncR, pos_R)
-            #print(outputL)
-            #print(outputR)
-            motorMove(outputL, outputR, dt)
-            #motorMove(25, 25, dt)
-            time.sleep(dt_target)
-            
-            #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 15 and abs(pos_R - desiredEncR) < 15):
-                  resetMotor()
-                  print("Broke out of while loop")
-                  break
-
 def turnRight():
       global pos_L, pos_R
       
@@ -188,8 +158,8 @@ def turnRight():
       turn_pid_R = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
 
       #sets target values for the encoder 
-      desiredEncL = pos_L + 220
-      desiredEncR = pos_R - 220
+      desiredEncL = pos_L + 215
+      desiredEncR = pos_R - 215
       
       #timer stuff
       prev_time = time.perf_counter() - dt_target
@@ -212,9 +182,9 @@ def turnRight():
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 15 and abs(pos_R - desiredEncR) < 15):
+            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
                   resetMotor()
-                  print("Broke out of while loop")
+                  #print("Broke out of while loop")
                   break
                   
 def turnLeft():
@@ -227,8 +197,8 @@ def turnLeft():
       turn_pid_R = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
 
       #sets target values for the encoder 
-      desiredEncL = pos_L - 220
-      desiredEncR = pos_R + 220
+      desiredEncL = pos_L - 215
+      desiredEncR = pos_R + 215
       
       #timer stuff
       prev_time = time.perf_counter() - dt_target
@@ -251,11 +221,50 @@ def turnLeft():
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 15 and abs(pos_R - desiredEncR) < 15):
+            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
                   resetMotor()
-                  print("Broke out of while loop")
+                  #print("Broke out of while loop")
                   break
 
+def forward1():
+      global pos_L, pos_R
+      
+      resetMotor()
+      
+      #setup PID for motor moving
+      move_pid_L = PID(dt_target, Pm, Im, Dm, 35, -35, tau=taupid)
+      move_pid_R = PID(dt_target, Pm, Im, Dm, 35, -35, tau=taupid)
+
+      #sets target values for the encoder 
+      desiredEncL = pos_L + 664
+      desiredEncR = pos_R + 664
+      
+      #timer stuff
+      prev_time = time.perf_counter() - dt_target
+      
+      while True:
+            #more timer stuff
+            curr_time = time.perf_counter()
+            dt = curr_time - prev_time
+            prev_time = curr_time
+            
+            #print(dt)
+            
+            #determines the speed of the motor
+            outputL = move_pid_L.control(desiredEncL, pos_L)
+            outputR = move_pid_R.control(desiredEncR, pos_R)
+            #print(outputL)
+            #print(outputR)
+            motorMove(outputL, outputR, dt)
+            #motorMove(25, 25, dt)
+            time.sleep(dt_target)
+            
+            #exits loop once desired turn is achieved
+            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
+                  resetMotor()
+                  #print("Broke out of while loop")
+                  break
+                  
 def motorMove(leftMotorSpeed, rightMotorSpeed, dt):
       #print("m")
       global thetaprev_L, thetaprev_R
@@ -309,7 +318,7 @@ def motorMove(leftMotorSpeed, rightMotorSpeed, dt):
             pwm4.ChangeDutyCycle(0)
       
 def resetMotor():
-      print("motors reset")
+      #print("motors reset")
       
       #stop all motors
       pwm1.ChangeDutyCycle(0)
@@ -328,8 +337,8 @@ def resetMotor():
       pos_L = 0
       pos_R = 0
       #reset PID for motor speed
-      pid_L = PID(dt_target, Pm, Im, Dm, 100, -100, tau=taupid)
-      pid_R = PID(dt_target, Pm, Im, Dm, 100, -100, tau=taupid)
+      pid_L = PID(dt_target, Ps, Is, Ds, 100, -100, tau=taupid)
+      pid_R = PID(dt_target, Ps, Is, Ds, 100, -100, tau=taupid)
 
 #functions for getting the encoder values
 def callback_L(way_L):
@@ -339,19 +348,20 @@ def callback_L(way_L):
 def callback_R(way_R):
       global pos_R
       pos_R += way_R
-      print("R={}".format(pos_R))
+      #print("R={}".format(pos_R))
       
 #function to get the values from the laser range sensors
 def tof():
+      global left
+      global right
+      global front
       timing = tof1.get_timing()
       if (timing < 20000):
             timing = 20000
-      distance1 = tof1.get_distance()
-      distance2 = tof2.get_distance()
-      distance3 = tof3.get_distance()
-      distance4 = tof4.get_distance()
+      left = tof1.get_distance()
+      front = tof2.get_distance()
+      right = tof3.get_distance()
       time.sleep(timing/1000000.00)
-      return distance1, distance2, distance3, distance4
 
 #stop everything
 def destroy():
@@ -362,34 +372,705 @@ def destroy():
       tof1.stop_ranging()
       tof2.stop_ranging()
       tof3.stop_ranging()
-      tof4.stop_ranging()
       decoder_L.cancel()
       decoder_R.cancel()
       GPIO.cleanup()
       pi.stop()
       
-def loop():
-      time.sleep(5)
-      for i in range(10):
-            turnLeft()
-            time.sleep(0.5)
-           
-      #turnRight()
-      #turnLeft()
+global override
+override = False
+
+class Cell:
+    def __init__(self, cols, rows): # constructor
+        self.cols = cols
+        self.rows = rows
+        self.value = 99
+        self.wallN = False
+        self.wallS = False
+        self.wallE = False
+        self.wallW = False
+        self.onBestPath = False
+
+    def setOnBestPath(self): # makes something on the best path
+        self.onBestPath = True
+    
+    def setWall(self, direction): # makes a wall at specified direction
+        if direction == "N":
+            self.wallN = True
+        if direction == "S":
+            self.wallS = True
+        if direction == "E":
+            self.wallE = True
+        if direction == "W":
+            self.wallW = True
+
+    def updateWalls(self): # updates the walls of the cell with the walls of adjacent cells
+        if self.cols < cols - 1:
+            if array_2d[self.rows][self.cols + 1].wallW:
+                self.wallE = True
+        if self.cols > 0:
+            if array_2d[self.rows][self.cols - 1].wallE:
+                self.wallW = True
+        if self.rows < rows - 1:
+            if array_2d[self.rows + 1][self.cols].wallN:
+                self.wallS = True
+        if self.rows > 0:
+            if array_2d[self.rows - 1][self.cols].wallS:
+                self.wallN = True
+    
+    def setVal(self, value): # sets the value(cells from center) of the cell
+        self.value = value
+    
+    def updateVal(self): # updates the value of the cell with the value of adjacent cells
+        if self.cols < cols - 1:
+            if array_2d[self.rows][self.cols + 1].value + 1 < self.value and not self.wallE:
+                self.value = array_2d[self.rows][self.cols + 1].value + 1
+                """
+                if the cell to the right of the cell's value + 1 is less than the
+                current cell's value, then it sets the current cell's value to the
+                right cell's value + 1
+                """
+        if self.cols > 0:
+            if array_2d[self.rows][self.cols - 1].value + 1 < self.value and not self.wallW:
+                self.value = array_2d[self.rows][self.cols - 1].value + 1
+        if self.rows < rows - 1:
+            if array_2d[self.rows + 1][self.cols].value + 1 < self.value and not self.wallS:
+                self.value = array_2d[self.rows + 1][self.cols].value + 1
+        if self.rows > 0:
+            if array_2d[self.rows - 1][self.cols].value + 1 < self.value and not self.wallN:
+                self.value = array_2d[self.rows - 1][self.cols].value + 1
+
+# setting up base values and the array itself
+#rows, cols = 16, 16
+rows, cols = 8, 8
+array_2d = [[Cell(j, i) for j in range(cols)] for i in range(rows)]
+# array_2d[7][7].setVal(0)
+# array_2d[8][7].setVal(0)
+# array_2d[7][8].setVal(0)
+# array_2d[8][8].setVal(0)
+array_2d[4][4].setVal(0)
+
+
+def printArrayVals(): # prints the array with the values of the cells accounting for if it is on the best path or not and if there are walls in a specified direction
+    print("\n\n")
+    for i in range (rows):
+        print("[ ", end = "")
+        for j in range (cols):
+            if(array_2d[i][j].value < 10):
+                if(array_2d[i][j].wallE and j < 15):
+                    if(array_2d[i][j].wallS and i < 15):
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + "\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = "\x1B[4m" + " " + "\x1B[0m" + "|")
+                        else:
+                            print("\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = "\x1B[4m" + " " + "\x1B[0m" + "|")  
+                    else:
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + str(array_2d[i][j].value) + "\x1B[0m", end = " |")
+                        else:
+                            print(array_2d[i][j].value, end = " |")
+                else:
+                    if(array_2d[i][j].wallS and i < 15):
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + "\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = "\x1B[4m" + " " + "\x1B[0m" + " ")
+                        else:
+                            print("\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = "\x1B[4m" + " " + "\x1B[0m" + " ")
+                    else:
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + str(array_2d[i][j].value) + "\x1B[0m", end = "  ")
+                        else:  
+                            print(array_2d[i][j].value, end = "  ")
             
-      # time.sleep(10)
-      # turnRight()
-      # print("finished turn left 1")
-      # time.sleep(0.5)
-      # turnRight()
-      # print("finished turn left 2")
-      # time.sleep(0.5)
-      # turnRight()
-      # print("finished turn left 3")
-      # time.sleep(0.5)
-      # turnRight()
-      # print("finished turn left 4")
-      time.sleep(60)
+            else:
+                if(array_2d[i][j].wallE and j < 15):
+                    if(array_2d[i][j].wallS and i < 15):
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + "\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = "|")
+                        else:
+                            print("\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = "|")
+                    else:
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + str(array_2d[i][j].value) + "\x1B[0m", end = "|")
+                        else:
+                            print(array_2d[i][j].value, end = "|")
+                else:
+                    if(array_2d[i][j].wallS and i < 15):
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + "\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = " ")
+                        else:
+                            print("\x1B[4m" + str(array_2d[i][j].value) + "\x1B[0m", end = " ")
+                    else:
+                        if(array_2d[i][j].onBestPath):
+                            print("\x1b[35m" + str(array_2d[i][j].value) + "\x1B[0m", end = " ")
+                        else:
+                            print(array_2d[i][j].value, end = " ")
+        print ("]")
+    print("^^^")
+def findDistance(self): # finds the distnce of the furthest cell in a a straight line that is on the best path and moves the mouse to that cell
+    if(self.direction == "E"):
+        val = 0
+        for i in range (1, cols):
+            if(self.col < cols - i and self.maze[self.row][self.col + i].onBestPath and not self.maze[self.row][self.col + (i - 1)].wallE):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag")
+            diagonal(self)
+        else:
+            self.moveForward(val)
+    if(self.direction == "W"):
+        val = 0
+        for i in range (1, cols):
+            if(self.col > i - 1 and self.maze[self.row][self.col - i].onBestPath and not self.maze[self.row][self.col - (i - 1)].wallW):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag")
+            diagonal(self)
+        else:
+            self.moveForward(val)
+    if(self.direction == "N"):
+        val = 0
+        for i in range (1, rows):
+            if(self.row > i - i and self.maze[self.row - i][self.col].onBestPath and not self.maze[self.row - (i - 1)][self.col].wallN):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag")
+            diagonal(self)
+        else:
+            self.moveForward(val)
+    if(self.direction == "S"):
+        val = 0
+        for i in range (1, rows):
+            if(self.row < rows - i and self.maze[self.row + i][self.col].onBestPath and not self.maze[self.row + (i - 1)][self.col].wallS):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag")
+            diagonal(self)
+        else:
+            self.moveForward(val)
+def findDistanceDiag(self): # finds the distnce of the furthest cell in a a diagonal line that is on the best path and moves the mouse to that cell
+    print(self.direction)
+    if(self.direction == "E"):
+        val = 0
+        for i in range (1, cols):
+            if(self.col < cols - i and self.maze[self.row][self.col + i].onBestPath and not self.maze[self.row][self.col + (i - 1)].wallE):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag (fake)")
+            return True
+        else:
+            return False
+    if(self.direction == "W"):
+        val = 0
+        for i in range (1, cols):
+            if(self.col > i - 1 and self.maze[self.row][self.col - i].onBestPath and not self.maze[self.row][self.col - (i - 1)].wallW):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag (fake)")
+            return True
+        else:
+            return False
+    if(self.direction == "N"):
+        val = 0
+        for i in range (1, rows):
+            if(self.row > i - i and self.maze[self.row - i][self.col].onBestPath and not self.maze[self.row - (i - 1)][self.col].wallN):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag (fake)")
+            return True
+        else:
+            return False
+    if(self.direction == "S"):
+        val = 0
+        for i in range (1, rows):
+            if(self.row < rows - i and self.maze[self.row + i][self.col].onBestPath and not self.maze[self.row + (i - 1)][self.col].wallS):
+                val += 1
+            else:
+                break
+        if(val == 1 and diag):
+            print("diag (fake)")
+            return True
+        else:
+            return False
+            
+def diagonal(self): # moves the mouse diagonally to the end of the diagonal line
+    next = True
+    while(next):
+        next = mouse1.followBestPath(False)
+        
+def updateArrayVals(): # updates the values of the cells in the array accounting for new walls
+    for s in range (99):
+        for i in range (rows):
+            for j in range (cols):
+                array_2d[i][j].updateVal()
+                
+def resetArrayVals(): # resets the values of the cells in the array (called in conjunction with updateArrayVals())
+    global override
+    for i in range (rows):
+        for j in range (cols):
+            array_2d[i][j].setVal(99)
+        if(not override):
+            # array_2d[7][7].setVal(0)
+            # array_2d[8][7].setVal(0)
+            # array_2d[7][8].setVal(0)
+            # array_2d[8][8].setVal(0)
+            array_2d[4][4].setVal(0)
+        else:
+            array_2d[0][0].setVal(0)
+            
+def updateArrayWalls(): # updates the walls of the cells in the array
+    for i in range (rows):
+        for j in range (cols):
+            array_2d[i][j].updateWalls()
+
+def findBestPath(rowS, colS): # finds the best path from the mouse's current position to the center using the cell values(does not account for diagonal turns being slightly faster despite more distance)
+    resetBestPath()
+    rowsC = rowS
+    colsC = colS
+    currentCell = array_2d[rowsC][colsC]
+    for i in range (99):
+        currentCell.setOnBestPath()
+        if(colsC < cols - 1):
+            if(array_2d[rowsC][colsC + 1].value == currentCell.value - 1 and not currentCell.wallE):
+                currentCell = array_2d[rowsC][colsC + 1]
+        if(colsC > 0):
+            if(array_2d[rowsC][colsC - 1].value == currentCell.value - 1 and not currentCell.wallW):
+                currentCell = array_2d[rowsC][colsC - 1]
+        if(rowsC < rows - 1):
+            if(array_2d[rowsC + 1][colsC].value == currentCell.value - 1 and not currentCell.wallS):
+                currentCell = array_2d[rowsC + 1][colsC]
+        if(rowsC > 0):
+            if(array_2d[rowsC - 1][colsC].value == currentCell.value - 1 and not currentCell.wallN):
+                currentCell = array_2d[rowsC - 1][colsC]
+        rowsC = currentCell.rows
+        colsC = currentCell.cols
+def resetBestPath(): # resets the best path of the cells in the array (called in conjunction with findBestPath())
+    for i in range (rows):
+        for j in range (cols):
+            array_2d[i][j].onBestPath = False
+class Mouse: # defines the class of mouse and its base values and methods
+    def __init__(self, maze):
+        self.direction = "E"
+        self.row = 0
+        self.col = 0
+        self.wallN = False
+        self.wallS = False
+        self.wallE = False
+        self.wallW = False
+        self.wallF = False
+        self.wallR = False
+        self.wallL = False
+        self.maze = maze
+        self.currentCell = self.maze[self.row][self.col]
+    def turn90(self): # turns the mouse 90 degrees to the right
+        turnRight()
+        if(self.direction == "N"):
+            self.direction = "E"
+            return
+        if(self.direction == "E"):
+            self.direction = "S"
+            return
+        if(self.direction == "S"):
+            self.direction = "W"
+            return
+        if(self.direction == "W"):
+            self.direction = "N"
+            return
+    def turnNeg90(self): # turns the mouse 90 degrees to the left
+        turnLeft()
+        if(self.direction == "N"):
+            self.direction = "W"
+            return
+        if(self.direction == "W"):
+            self.direction = "S"
+            return
+        if(self.direction == "S"):
+            self.direction = "E"
+            return
+        if(self.direction == "E"):
+            self.direction = "N"
+            return
+    def moveForward1(self): # moves the mouse forward a specified amount of cells
+        forward1()
+        if(self.direction == "N"):
+            self.row -= 1
+        if(self.direction == "S"):
+            self.row += 1
+        if(self.direction == "E"):
+            self.col += 1
+        if(self.direction == "W"):
+            self.col -= 1
+        self.currentCell = self.maze[self.row][self.col]
+    def moveForward(self, amount): # moves the mouse forward a specified amount of cells
+        if(self.direction == "N"):
+            self.row -= amount
+        if(self.direction == "S"):
+            self.row += amount
+        if(self.direction == "E"):
+            self.col += amount
+        if(self.direction == "W"):
+            self.col -= amount
+        self.currentCell = self.maze[self.row][self.col]
+    def movePosForward(self, amount): # moves the mouse's position forward a specified amount of cells (used for diagonal movement)
+        if(self.direction == "N"):
+            self.row -= amount
+        if(self.direction == "S"):
+            self.row += amount
+        if(self.direction == "E"):
+            self.col += amount
+        if(self.direction == "W"):
+            self.col -= amount
+        self.currentCell = self.maze[self.row][self.col]
+    def detectWalls(self): # detects the walls around the mouse
+        global left
+        global right
+        global front
+        tof()
+        if(right < 150):
+            self.wallR = True
+        if(left < 150):
+            self.wallL = True
+        if(front < 150):
+            self.wallF = True
+        mouse1.updateWalls()
+        self.wallF = False
+        self.wallR = False
+        self.wallL = False
+    def updateWalls(self): # updates the walls of the cell the mouse is on with the walls the mouse detects
+        if(self.wallF):
+            self.currentCell.setWall(self.direction)
+            updateArrayWalls()
+            resetArrayVals()
+            updateArrayVals()
+        if(self.wallR):
+            if(self.direction == "N"):
+                self.currentCell.setWall("E")
+            if(self.direction == "W"):
+                self.currentCell.setWall("N")
+            if(self.direction == "S"):
+                self.currentCell.setWall("W")
+            if(self.direction == "E"):
+                self.currentCell.setWall("S")
+            updateArrayWalls()
+            resetArrayVals()
+            updateArrayVals()
+        if(self.wallL):
+            if(self.direction == "N"):
+                self.currentCell.setWall("W")
+            if(self.direction == "W"):
+                self.currentCell.setWall("S")
+            if(self.direction == "S"):
+                self.currentCell.setWall("E")
+            if(self.direction == "E"):
+                self.currentCell.setWall("N")
+            updateArrayWalls()
+            resetArrayVals()
+            updateArrayVals()
+    def followBestPath(self, real): # follows the best path from the mouse's current position to the center using the cell values(has different modes for mapping and diagonal movement)
+        findBestPath(self.row, self.col)
+        if(real):
+            if(mapping):
+                if(self.direction == "E"):
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.moveForward1()
+                        return
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.turn90()
+                        self.moveForward1()
+                        return
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.turnNeg90()
+                        self.moveForward1()
+                        return
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        self.moveForward1()
+                        return
+                if(self.direction == "W"):
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.moveForward1()
+                        return
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.turnNeg90()
+                        self.moveForward1()
+                        return
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.turn90()
+                        self.moveForward1()
+                        return
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        self.moveForward1()
+                        return
+                if(self.direction == "N"):
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.moveForward1()
+                        return
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.turn90()
+                        self.moveForward1()
+                        return
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.turnNeg90()
+                        self.moveForward1()
+                        return
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        self.moveForward1()
+                        return
+                if(self.direction == "S"):
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.moveForward1()
+                        return
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.turnNeg90()
+                        self.moveForward1()
+                        return
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.turn90()
+                        self.moveForward1()
+                        return
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        self.moveForward1()
+                        return
+            else:
+                if(self.direction == "E"):
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        findDistance(self)
+                        return
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.turn90()
+                        findDistance(self)
+                        return
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.turnNeg90()
+                        findDistance(self)
+                        return
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        findDistance(self)
+                        return
+                if(self.direction == "W"):
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        findDistance(self)
+                        return
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.turnNeg90()
+                        findDistance(self)
+                        return
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.turn90()
+                        findDistance(self)
+                        return
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        findDistance(self)
+                        return
+                if(self.direction == "N"):
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        findDistance(self)
+                        return
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.turn90()
+                        findDistance(self)
+                        return
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.turnNeg90()
+                        findDistance(self)
+                        return
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        findDistance(self)
+                        return
+                if(self.direction == "S"):
+                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        findDistance(self)
+                        return
+                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.turnNeg90()
+                        findDistance(self)
+                        return
+                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.turn90()
+                        findDistance(self)
+                        return
+                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.turn90()
+                        time.sleep(0.5)
+                        self.turn90()
+                        findDistance(self)
+                        return
+        else:
+            if(self.direction == "E"):
+                if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                    self.turn90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                    self.turnNeg90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+            if(self.direction == "W"):
+                if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                    self.turnNeg90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                    self.turn90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+            if(self.direction == "N"):
+                if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                    self.turn90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                    self.turnNeg90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+            if(self.direction == "S"):
+                if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                    self.turnNeg90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                    self.turn90()
+                    next = findDistanceDiag(self)
+                    self.movePosForward(1)
+                    return next
+                    
+def writeMazeToFile():
+    file = open("maze.txt", "w")
+    thingsToAdd = []
+    for i in range(rows):
+        for j in range(cols):
+            if(array_2d[i][j].wallN == True):
+                file.write(str(i)+str(j)+"N")
+            if(array_2d[i][j].wallE == True):
+                file.write(str(i)+str(j)+"E")
+            if(array_2d[i][j].wallS == True):
+                file.write(str(i)+str(j)+"S")
+            if(array_2d[i][j].wallW == True):
+                file.write(str(i)+str(j)+"W")
+    file.close()
+def readMazeFromFile():
+    file = open("maze.txt", "r")
+    fileString = file.read()
+    file.close()
+    for i in range(len(fileString)):
+        if(i % 3 == 0):
+            row = int(fileString[i])
+        elif(i % 3 == 1):
+            col = int(fileString[i])
+        else:
+            direction = fileString[i]
+        array_2d[col][row].setWall(direction)  
+        
+mouse1 = Mouse(array_2d)
+
+
+updateArrayWalls()
+resetArrayVals()
+updateArrayVals()
+findBestPath(mouse1.row, mouse1.col)
+printArrayVals()
+
+mapping = True
+diag = False
+print("Gurt: Yo")
+def loop():
+    time.sleep(15)
+    print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+    global override
+    for i in range (99): # main loop
+        printArrayVals()
+        print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
+        mouse1.detectWalls()
+        updateArrayWalls()
+        resetArrayVals()
+        updateArrayVals()
+        if(mouse1.currentCell.value == 0):
+            time.sleep(3)
+            override = True
+        mouse1.followBestPath(True)
+
+# Turn 45 implementation
+# exiting diagonal turns
+# turns during diagonals
+
+
+# def loop():
+      # time.sleep(5)
+      # # for i in range(10):
+            # # turnLeft()
+            # # time.sleep(0.5)
+           
+      # # #turnRight()
+      # # #turnLeft()
+      # forward1()
+            
+      # # # time.sleep(10)
+      # # # turnRight()      # print("finished turn left 1")
+      # # # time.sleep(0.5)
+      # # # turnRight()
+      # # # print("finished turn left 2")
+      # # # time.sleep(0.5)
+      # # # turnRight()
+      # # # print("finished turn left 3")
+      # # # time.sleep(0.5)
+      # # # turnRight()
+      # # # print("finished turn left 4")
+      # time.sleep(60)
       
 #start everything
 if __name__ == '__main__':
