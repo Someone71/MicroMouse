@@ -22,6 +22,10 @@ global left
 global right
 global front
 
+global desiredEncL
+global desiredEncL
+
+
 #sys.path.insert(0, '/home/someone/Micromouse/MinIMU-9-v5')
 #from MinIMU_v5_pi import MinIMU_v5_pi
 
