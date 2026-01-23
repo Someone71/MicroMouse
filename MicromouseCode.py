@@ -59,8 +59,8 @@ It = 0.02 #0.1
 Dt = 0 #0.0067
 
 #motor move pid
-Pm = 0.02 #0.12
-Im = 0.0014 #0.1
+Pm = 0.1 #0.12
+Im = 0.01 #0.1
 Dm = 0 #0.0067
 
 #motor sprint pid
@@ -275,7 +275,7 @@ def forward1():
                   resetMotor()
                   #print("Broke out of while loop")
                   break
-def forwardVar(int cells):
+def forwardVar(cells):
       global pos_L, pos_R
       global desiredEncL
       global desiredEndR
@@ -311,7 +311,7 @@ def forwardVar(int cells):
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
+            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
                   resetMotor()
                   #print("Broke out of while loop")
                   break  
@@ -839,9 +839,9 @@ class Mouse: # defines the class of mouse and its base values and methods
         global desiredEncL
         global desiredEncR
         if(self.wallL and left > 70):
-            desiredEncR += 1
+            desiredEncR += 6
         if(self.wallR and right > 70):
-            desiredEncL += 1
+            desiredEncL += 6
     
     def followBestPath(self, real): # follows the best path from the mouse's current position to the center using the cell values(has different modes for mapping and diagonal movement)
         findBestPath(self.row, self.col)
@@ -1093,52 +1093,52 @@ printArrayVals()
 mapping = True
 diag = False
 print("Gurt: Yo")
-def loop():
-    time.sleep(15)
-    print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
-    global override
-    for i in range (99): # main loop
-        printArrayVals()
-        print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
-        if(mapping):
-            mouse1.detectWalls()
-            updateArrayWalls()
-            resetArrayVals()
-            updateArrayVals()
-        if(mouse1.currentCell.value == 0):
-            time.sleep(3)
-            override = True
-            resetArrayVals()
-            updateArrayVals()
-        mouse1.followBestPath(True)
+# def loop():
+    # time.sleep(15)
+    # print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+    # global override
+    # for i in range (99): # main loop
+        # printArrayVals()
+        # print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
+        # if(mapping):
+            # mouse1.detectWalls()
+            # updateArrayWalls()
+            # resetArrayVals()
+            # updateArrayVals()
+        # if(mouse1.currentCell.value == 0):
+            # time.sleep(3)
+            # override = True
+            # resetArrayVals()
+            # updateArrayVals()
+        # mouse1.followBestPath(True)
 
 # Turn 45 implementation
 # exiting diagonal turns
 # turns during diagonals
 
 
-# def loop():
-      # time.sleep(5)
-      # # for i in range(10):
-            # # turnLeft()
-            # # time.sleep(0.5)
+def loop():
+      time.sleep(5)
+      for i in range(10):
+            forward1()
+            time.sleep(0.5)
            
-      # # #turnRight()
-      # # #turnLeft()
+      # #turnRight()
+      # #turnLeft()
       # forward1()
             
-      # # # time.sleep(10)
-      # # # turnRight()      # print("finished turn left 1")
-      # # # time.sleep(0.5)
-      # # # turnRight()
-      # # # print("finished turn left 2")
-      # # # time.sleep(0.5)
-      # # # turnRight()
-      # # # print("finished turn left 3")
-      # # # time.sleep(0.5)
-      # # # turnRight()
-      # # # print("finished turn left 4")
-      # time.sleep(60)
+      # # time.sleep(10)
+      # # turnRight()      # print("finished turn left 1")
+      # # time.sleep(0.5)
+      # # turnRight()
+      # # print("finished turn left 2")
+      # # time.sleep(0.5)
+      # # turnRight()
+      # # print("finished turn left 3")
+      # # time.sleep(0.5)
+      # # turnRight()
+      # # print("finished turn left 4")
+      time.sleep(60)
       
 #start everything
 if __name__ == '__main__':
