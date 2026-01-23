@@ -23,7 +23,7 @@ global right
 global front
 
 global desiredEncL
-global desiredEncL
+global desiredEncR
 
 
 #sys.path.insert(0, '/home/someone/Micromouse/MinIMU-9-v5')
@@ -62,6 +62,11 @@ Dt = 0 #0.0067
 Pm = 0.02 #0.12
 Im = 0.0014 #0.1
 Dm = 0 #0.0067
+
+#motor sprint pid
+Pv = 0.02 #0.12
+Iv = 0.0014 #0.1
+Dv = 0 #0.0067
 
 #more stuff for motor setup
 output_L = 0
@@ -232,6 +237,8 @@ def turnLeft():
 
 def forward1():
       global pos_L, pos_R
+      global desiredEncL
+      global desiredEndR
       
       resetMotor()
       
@@ -253,7 +260,7 @@ def forward1():
             prev_time = curr_time
             
             #print(dt)
-            
+            mouse1.autoAdjust()
             #determines the speed of the motor
             outputL = move_pid_L.control(desiredEncL, pos_L)
             outputR = move_pid_R.control(desiredEncR, pos_R)
@@ -268,6 +275,46 @@ def forward1():
                   resetMotor()
                   #print("Broke out of while loop")
                   break
+def forwardVar(int cells):
+      global pos_L, pos_R
+      global desiredEncL
+      global desiredEndR
+      
+      resetMotor()
+      
+      #setup PID for motor moving
+      sprint_pid_L = PID(dt_target, Pv, Iv, Dv, 35, -35, tau=taupid)
+      sprint_pid_R = PID(dt_target, Pv, Iv, Dv, 35, -35, tau=taupid)
+
+      #sets target values for the encoder 
+      desiredEncL = pos_L + 664 * cells
+      desiredEncR = pos_R + 664 * cells
+      
+      #timer stuff
+      prev_time = time.perf_counter() - dt_target
+      
+      while True:
+            #more timer stuff
+            curr_time = time.perf_counter()
+            dt = curr_time - prev_time
+            prev_time = curr_time
+            
+            #print(dt)
+            mouse1.autoAdjust()
+            #determines the speed of the motor
+            outputL = sprint_pid_L.control(desiredEncL, pos_L)
+            outputR = sprint_pid_R.control(desiredEncR, pos_R)
+            #print(outputL)
+            #print(outputR)
+            motorMove(outputL, outputR, dt)
+            #motorMove(25, 25, dt)
+            time.sleep(dt_target)
+            
+            #exits loop once desired turn is achieved
+            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
+                  resetMotor()
+                  #print("Broke out of while loop")
+                  break  
                   
 def motorMove(leftMotorSpeed, rightMotorSpeed, dt):
       #print("m")
@@ -722,6 +769,7 @@ class Mouse: # defines the class of mouse and its base values and methods
             self.col -= 1
         self.currentCell = self.maze[self.row][self.col]
     def moveForward(self, amount): # moves the mouse forward a specified amount of cells
+        forwardVar(amount)
         if(self.direction == "N"):
             self.row -= amount
         if(self.direction == "S"):
@@ -786,6 +834,15 @@ class Mouse: # defines the class of mouse and its base values and methods
             updateArrayWalls()
             resetArrayVals()
             updateArrayVals()
+          
+    def autoAdjust(self):
+        global desiredEncL
+        global desiredEncR
+        if(self.wallL and left > 70):
+            desiredEncR += 1
+        if(self.wallR and right > 70):
+            desiredEncL += 1
+    
     def followBestPath(self, real): # follows the best path from the mouse's current position to the center using the cell values(has different modes for mapping and diagonal movement)
         findBestPath(self.row, self.col)
         if(real):
