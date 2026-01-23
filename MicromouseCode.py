@@ -1100,13 +1100,16 @@ def loop():
     for i in range (99): # main loop
         printArrayVals()
         print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
-        mouse1.detectWalls()
-        updateArrayWalls()
-        resetArrayVals()
-        updateArrayVals()
+        if(mapping):
+            mouse1.detectWalls()
+            updateArrayWalls()
+            resetArrayVals()
+            updateArrayVals()
         if(mouse1.currentCell.value == 0):
             time.sleep(3)
             override = True
+            resetArrayVals()
+            updateArrayVals()
         mouse1.followBestPath(True)
 
 # Turn 45 implementation
