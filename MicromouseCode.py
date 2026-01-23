@@ -562,6 +562,7 @@ def findDistanceDiag(self): # finds the distnce of the furthest cell in a a diag
             if(self.col < cols - i and self.maze[self.row][self.col + i].onBestPath and not self.maze[self.row][self.col + (i - 1)].wallE):
                 val += 1
             else:
+                turn45()
                 break
         if(val == 1 and diag):
             print("diag (fake)")
@@ -574,6 +575,7 @@ def findDistanceDiag(self): # finds the distnce of the furthest cell in a a diag
             if(self.col > i - 1 and self.maze[self.row][self.col - i].onBestPath and not self.maze[self.row][self.col - (i - 1)].wallW):
                 val += 1
             else:
+                turn45()
                 break
         if(val == 1 and diag):
             print("diag (fake)")
@@ -586,6 +588,7 @@ def findDistanceDiag(self): # finds the distnce of the furthest cell in a a diag
             if(self.row > i - i and self.maze[self.row - i][self.col].onBestPath and not self.maze[self.row - (i - 1)][self.col].wallN):
                 val += 1
             else:
+                turn45()
                 break
         if(val == 1 and diag):
             print("diag (fake)")
@@ -598,6 +601,7 @@ def findDistanceDiag(self): # finds the distnce of the furthest cell in a a diag
             if(self.row < rows - i and self.maze[self.row + i][self.col].onBestPath and not self.maze[self.row + (i - 1)][self.col].wallS):
                 val += 1
             else:
+                turn45()
                 break
         if(val == 1 and diag):
             print("diag (fake)")
