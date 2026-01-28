@@ -252,7 +252,12 @@ def forward1():
       
       #timer stuff
       prev_time = time.perf_counter() - dt_target
+      EncL = int(mouse1.autoAdjustL(desiredEncL))
+      EncR = int(mouse1.autoAdjustR(desiredEncR))
+      desiredEncL += EncL
+      desiredEncR += EncR
       
+
       while True:
             #more timer stuff
             curr_time = time.perf_counter()
@@ -260,7 +265,7 @@ def forward1():
             prev_time = curr_time
             
             #print(dt)
-            mouse1.autoAdjust()
+            #mouse1.autoAdjust()
             #determines the speed of the motor
             outputL = move_pid_L.control(desiredEncL, pos_L)
             outputR = move_pid_R.control(desiredEncR, pos_R)
@@ -292,6 +297,10 @@ def forwardVar(cells):
       
       #timer stuff
       prev_time = time.perf_counter() - dt_target
+      EncL = int(mouse1.autoAdjustL(desiredEncL))
+      EncR = int(mouse1.autoAdjustR(desiredEncR))
+      desiredEncL += EncL
+      desiredEncR += EncR
       
       while True:
             #more timer stuff
@@ -395,7 +404,7 @@ def resetMotor():
 def callback_L(way_L):
       global pos_L
       pos_L += way_L
-      print("L={}".format(pos_L))
+      #print("L={}".format(pos_L))
 def callback_R(way_R):
       global pos_R
       pos_R += way_R
@@ -835,14 +844,15 @@ class Mouse: # defines the class of mouse and its base values and methods
             resetArrayVals()
             updateArrayVals()
           
-    def autoAdjust(self):
-        global desiredEncL
-        global desiredEncR
+    def autoAdjustL(self, EncL):
         if(self.wallL and left > 70):
-            desiredEncR += 6
+            return "3"
+        return "0"
+    def autoAdjustR(self, EncR):
         if(self.wallR and right > 70):
-            desiredEncL += 6
-    
+            return "3"
+        return "0"
+            
     def followBestPath(self, real): # follows the best path from the mouse's current position to the center using the cell values(has different modes for mapping and diagonal movement)
         findBestPath(self.row, self.col)
         if(real):
@@ -1094,7 +1104,7 @@ mapping = True
 diag = False
 print("Gurt: Yo")
 # def loop():
-    # time.sleep(15)
+    # time.sleep(5)
     # print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
     # global override
     # for i in range (99): # main loop
@@ -1121,7 +1131,7 @@ def loop():
       time.sleep(5)
       for i in range(10):
             forward1()
-            time.sleep(0.5)
+            time.sleep(20)
            
       # #turnRight()
       # #turnLeft()
@@ -1138,7 +1148,7 @@ def loop():
       # # time.sleep(0.5)
       # # turnRight()
       # # print("finished turn left 4")
-      time.sleep(60)
+      # time.sleep(60)
       
 #start everything
 if __name__ == '__main__':
