@@ -55,11 +55,11 @@ Ds = 0
 
 #motor turning pid
 Pt = 0.07 #0.12
-It = 0.02 #0.1
+It = 0.025 #0.1
 Dt = 0 #0.0067
 
 #motor move pid
-Pm = 0.1 #0.12
+Pm = 0.07 #0.12, 0.1
 Im = 0.01 #0.1
 Dm = 0 #0.0067
 
@@ -169,7 +169,6 @@ def turnRight():
       #sets target values for the encoder 
       desiredEncL = pos_L + 215
       desiredEncR = pos_R - 215
-      
       #timer stuff
       prev_time = time.perf_counter() - dt_target
       
@@ -191,7 +190,7 @@ def turnRight():
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
+            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -230,7 +229,7 @@ def turnLeft():
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
+            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -247,25 +246,32 @@ def forward1():
       move_pid_R = PID(dt_target, Pm, Im, Dm, 35, -35, tau=taupid)
 
       #sets target values for the encoder 
-      desiredEncL = pos_L + 664
-      desiredEncR = pos_R + 664
+      desiredEncL = pos_L + 630
+      desiredEncR = pos_R + 630
+      
       
       #timer stuff
-      prev_time = time.perf_counter() - dt_target
-      EncL = int(mouse1.autoAdjustL(desiredEncL))
-      EncR = int(mouse1.autoAdjustR(desiredEncR))
-      desiredEncL += EncL
-      desiredEncR += EncR
-      
+      prev_time = time.perf_counter() - dt_target      
 
       while True:
+            EncL = int(mouse1.autoAdjustL(desiredEncL))
+            EncR = int(mouse1.autoAdjustR(desiredEncR))
+            
+            desiredEncL += EncL
+            desiredEncR += EncR
+            desiredEncL -= EncR
+            desiredEncR -= EncL
+            
             #more timer stuff
             curr_time = time.perf_counter()
             dt = curr_time - prev_time
             prev_time = curr_time
             
             #print(dt)
-            #mouse1.autoAdjust()
+            
+            print(desiredEncL)
+            print(desiredEncR)
+
             #determines the speed of the motor
             outputL = move_pid_L.control(desiredEncL, pos_L)
             outputR = move_pid_R.control(desiredEncR, pos_R)
@@ -276,7 +282,7 @@ def forward1():
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
+            if((abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7)): #or front <= 65
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -292,15 +298,18 @@ def forwardVar(cells):
       sprint_pid_R = PID(dt_target, Pv, Iv, Dv, 35, -35, tau=taupid)
 
       #sets target values for the encoder 
-      desiredEncL = pos_L + 664 * cells
-      desiredEncR = pos_R + 664 * cells
+      desiredEncL = pos_L + 630 * cells
+      desiredEncR = pos_R + 630 * cells
       
-      #timer stuff
-      prev_time = time.perf_counter() - dt_target
       EncL = int(mouse1.autoAdjustL(desiredEncL))
       EncR = int(mouse1.autoAdjustR(desiredEncR))
       desiredEncL += EncL
       desiredEncR += EncR
+      desiredEncL -= EncR
+      desiredEncR -= EncL
+      
+      #timer stuff
+      prev_time = time.perf_counter() - dt_target
       
       while True:
             #more timer stuff
@@ -309,7 +318,7 @@ def forwardVar(cells):
             prev_time = curr_time
             
             #print(dt)
-            mouse1.autoAdjust()
+
             #determines the speed of the motor
             outputL = sprint_pid_L.control(desiredEncL, pos_L)
             outputR = sprint_pid_R.control(desiredEncR, pos_R)
@@ -320,7 +329,7 @@ def forwardVar(cells):
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
+            if((abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7)): #or front <= 65
                   resetMotor()
                   #print("Broke out of while loop")
                   break  
@@ -844,13 +853,30 @@ class Mouse: # defines the class of mouse and its base values and methods
             resetArrayVals()
             updateArrayVals()
           
+    # def autoAdjustL(self, EncL):
+        # if(self.wallL and left < 70):
+            # return "25"
+        # return "0"
+    # def autoAdjustR(self, EncR):
+        # if(self.wallR and right < 70):
+            # return "25"
+        # return "0"
+        
     def autoAdjustL(self, EncL):
-        if(self.wallL and left > 70):
-            return "3"
+        if(left < 40 and right > 150 and EncL < 300):
+            print("ur granddad")
+            return "2"
+        elif(left < 60 and right > 150 and EncL < 300):
+            print("ur grandmom")
+            return "2"
         return "0"
     def autoAdjustR(self, EncR):
-        if(self.wallR and right > 70):
-            return "3"
+        if(right < 20 and left > 150 and EncR < 300):
+            print("ur dad")
+            return "2"
+        elif(right < 40 and left > 150 and EncR < 300):
+            print("ur mom")
+            return "2"
         return "0"
             
     def followBestPath(self, real): # follows the best path from the mouse's current position to the center using the cell values(has different modes for mapping and diagonal movement)
@@ -1103,35 +1129,36 @@ printArrayVals()
 mapping = True
 diag = False
 print("Gurt: Yo")
-# def loop():
-    # time.sleep(5)
-    # print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
-    # global override
-    # for i in range (99): # main loop
-        # printArrayVals()
-        # print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
-        # if(mapping):
-            # mouse1.detectWalls()
-            # updateArrayWalls()
-            # resetArrayVals()
-            # updateArrayVals()
-        # if(mouse1.currentCell.value == 0):
-            # time.sleep(3)
-            # override = True
-            # resetArrayVals()
-            # updateArrayVals()
-        # mouse1.followBestPath(True)
+def loop():
+    time.sleep(10)
+    print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+    global override
+    for i in range (99): # main loop
+        printArrayVals()
+        print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
+        if(mapping):
+            mouse1.detectWalls()
+            updateArrayWalls()
+            resetArrayVals()
+            updateArrayVals()
+        if(mouse1.currentCell.value == 0):
+            time.sleep(3)
+            override = True
+            resetArrayVals()
+            updateArrayVals()
+        mouse1.followBestPath(True)
 
 # Turn 45 implementation
 # exiting diagonal turns
 # turns during diagonals
 
 
-def loop():
-      time.sleep(5)
-      for i in range(10):
-            forward1()
-            time.sleep(20)
+# def loop():
+      # time.sleep(5)
+      # for i in range(10):
+            # turnLeft()
+            # time.sleep(1)
+      # time.sleep(60)
            
       # #turnRight()
       # #turnLeft()
