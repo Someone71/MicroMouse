@@ -59,8 +59,8 @@ It = 0.02 #0.1
 Dt = 0 #0.0067
 
 #motor move pid
-Pm = 0.06 #0.12, 0.1
-Im = 0.01 #0.1
+Pm = 0.1 #0.12, 0.1
+Im = 0.001 #0.1
 Dm = 0 #0.0067
 
 #motor sprint pid
@@ -69,9 +69,14 @@ Iv = 0.0014 #0.1
 Dv = 0 #0.0067
 
 #motor adjusting pid
-Pa = 0.05
-Ia = 0.003
+Pa = 0.2
+Ia = 0
 Da = 0
+
+#motor hitting wall pid
+Pw = 0.2
+Iw = 0.01
+Dw = 0
 
 #more stuff for motor setup
 output_L = 0
@@ -107,11 +112,15 @@ frequency = 100
 pi = pigpio.pi()
 GPIO.setmode(GPIO.BCM)
 
+#Switch Pin
+toggle = 26
+
+
 def setup():
       #IMU.trackYaw()
       #IMU.trackAngle()
       print('Starting program...')
-      #motor shit
+      #motor setup
       GPIO.setup(pin1, GPIO.OUT)
       GPIO.setup(pin2, GPIO.OUT)
       GPIO.setup(pin3, GPIO.OUT)
@@ -133,7 +142,7 @@ def setup():
       pwm3.start(0)
       pwm4.start(0)
       
-      #laser range finder shit
+      #laser range finder setup
       GPIO.setup(sensor1_shutdown, GPIO.OUT)
       GPIO.setup(sensor2_shutdown, GPIO.OUT)
       GPIO.setup(sensor3_shutdown, GPIO.OUT)
@@ -161,6 +170,9 @@ def setup():
       global decoder_R
       decoder_L = rotary_encoder.decoder(pi, 5, 6, callback_L)
       decoder_R = rotary_encoder.decoder(pi, 12, 13, callback_R)
+      
+      #Switch tings
+      GPIO.setup(toggle, GPIO.IN, pull_up_down = GPIO.PUD_UP)
       
 def turnRight():
       global pos_L, pos_R
@@ -195,7 +207,7 @@ def turnRight():
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 4 and abs(pos_R - desiredEncR) < 4):
+            if(abs(desiredEncL - pos_L) < 6 and abs(pos_R - desiredEncR) < 6):
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -234,7 +246,7 @@ def turnLeft():
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 4 and abs(pos_R - desiredEncR) < 4):
+            if(abs(desiredEncL - pos_L) < 6 and abs(pos_R - desiredEncR) < 6):
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -272,7 +284,7 @@ def turnVar(encChangeL, encChangeR):
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 6 and abs(pos_R - desiredEncR) < 6):
+            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -311,9 +323,6 @@ def forward1():
             prev_time = curr_time
             
             #print(dt)
-            
-            print(desiredEncL)
-            print(desiredEncR)
 
             #determines the speed of the motor
             outputL = move_pid_L.control(desiredEncL, pos_L)
@@ -376,6 +385,45 @@ def forwardVar(cells):
                   resetMotor()
                   #print("Broke out of while loop")
                   break  
+                  
+def hitWall(encChangeL, encChangeR):
+      global pos_L, pos_R
+      
+      resetMotor()
+      
+      #setup PID for turning (dt is time stamp, Dt is derivative term)
+      turn_pid_L = PID(dt_target, Pw, Iw, Dw, 35, -35, tau=taupid)
+      turn_pid_R = PID(dt_target, Pw, Iw, Dw, 35, -35, tau=taupid)
+
+      #sets target values for the encoder 
+      desiredEncL = pos_L - encChangeL
+      desiredEncR = pos_R - encChangeR
+      #timer stuff
+      prev_time = time.perf_counter() - dt_target
+      
+      while True:
+            #more timer stuff
+            curr_time = time.perf_counter()
+            dt = curr_time - prev_time
+            prev_time = curr_time
+            
+            #print(dt)
+            
+            #determines the speed of the motor
+            outputL = turn_pid_L.control(desiredEncL, pos_L)
+            outputR = turn_pid_R.control(desiredEncR, pos_R)
+            #print(outputL)
+            #print(outputR)
+            motorMove(outputL, outputR, dt)
+            #motorMove(25, 25, dt)
+            time.sleep(dt_target)
+            
+            #exits loop once desired turn is achieved
+            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
+                  resetMotor()
+                  #print("Broke out of while loop")
+                  break
+
                   
 def motorMove(leftMotorSpeed, rightMotorSpeed, dt):
       #print("m")
@@ -905,28 +953,17 @@ class Mouse: # defines the class of mouse and its base values and methods
             return "1"
         return "0"
     def autoAdjustOnWall(self):
-          if(((left > 70 and left < 120) or left < 60) and ((right > 75 and right < 120) or right < 50)):
-                turnVar((left - 64)/2.5, (right - 61)/2.5)
-                
-    # def autoAdjustL(self, EncL):
-        # if(left < 40 and right > 70): # and EncL < 300            # print("ur granddad")
-            # return "2"
-        # elif(left < 60 and right > 70): # and EncL < 300
-            # print("ur grandmom")
-            # return "2"
-        # return "0"
-    # def autoAdjustR(self, EncR):
-        # if(right < 15 and left > 70): # and EncR < 300
-            # print("ur dad")
-            # return "2"
-        # elif(right < 40 and left > 70): # and EncR < 300
-            # print("ur mom")
-            # return "2"
-        # return "0"
-            
+          if(left < 60 and right < 50):
+                turnVar((left - 64)/2, (right - 61)/2)     
+    def hitDaWall(self):
+          if(front < 90 and front > 30):
+                turnVar(-60, -60)
+          
+      
     def followBestPath(self, real): # follows the best path from the mouse's current position to the center using the cell values(has different modes for mapping and diagonal movement)
         findBestPath(self.row, self.col)
         if(real):
+            self.hitDaWall()
             if(mapping):
                 if(self.direction == "E"):
                     if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
@@ -1027,6 +1064,7 @@ class Mouse: # defines the class of mouse and its base values and methods
             else:
                 if(self.direction == "E"):
                     if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                        self.autoAdjustOnWall()
                         findDistance(self)
                         return
                     if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
@@ -1045,6 +1083,7 @@ class Mouse: # defines the class of mouse and its base values and methods
                         return
                 if(self.direction == "W"):
                     if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                        self.autoAdjustOnWall()
                         findDistance(self)
                         return
                     if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
@@ -1063,6 +1102,7 @@ class Mouse: # defines the class of mouse and its base values and methods
                         return
                 if(self.direction == "N"):
                     if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                        self.autoAdjustOnWall()
                         findDistance(self)
                         return
                     if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
@@ -1081,6 +1121,7 @@ class Mouse: # defines the class of mouse and its base values and methods
                         return
                 if(self.direction == "S"):
                     if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                        self.autoAdjustOnWall()
                         findDistance(self)
                         return
                     if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
@@ -1197,25 +1238,36 @@ printArrayVals()
 
 mapping = True
 diag = False
-print("Gurt: Yo")
 def loop():
-    time.sleep(10)
-    print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
-    global override
-    for i in range (99): # main loop
-        printArrayVals()
-        print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
-        if(mapping):
-            mouse1.detectWalls()
-            updateArrayWalls()
-            resetArrayVals()
-            updateArrayVals()
-        if(mouse1.currentCell.value == 0):
-            time.sleep(3)
-            override = True
-            resetArrayVals()
-            updateArrayVals()
-        mouse1.followBestPath(True)
+     global mouse1
+     while(True):
+           if(GPIO.input(toggle) == GPIO.LOW):
+                global override
+                time.sleep(1)
+                for i in range (99): # main loop
+                    printArrayVals()
+                    print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
+                    if(mapping):
+                        mouse1.detectWalls()
+                        updateArrayWalls()
+                        resetArrayVals()
+                        updateArrayVals()
+                    if(mouse1.currentCell.value != 0):
+                        mouse1.followBestPath(True)
+                    if(GPIO.input(toggle) != GPIO.LOW):
+                        break
+           else:
+                 mouse1.row = 0
+                 mouse1.col = 0
+                 mouse1.currentCell = mouse1.maze[0][0]
+                 findBestPath(0, 0)
+                 mouse1.direction = "E"
+                 resetArrayVals()
+                 updateArrayVals()
+                 print("EEEEEEEEEEEEEEEEEE")
+                 resetMotor()
+                 
+            
 
 # Turn 45 implementation
 # exiting diagonal turns
