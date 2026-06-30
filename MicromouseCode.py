@@ -54,13 +54,13 @@ Is = 2
 Ds = 0
 
 #motor turning pid
-Pt = 0.06 #0.12
-It = 0.02 #0.1
-Dt = 0 #0.0067
+Pt = 0.14 #0.12
+It = 0.0001 #0.1
+Dt = 0 #0.008
 
 #motor move pid
 Pm = 0.1 #0.12, 0.1
-Im = 0.001 #0.1
+Im = 0.01 #0.1
 Dm = 0 #0.0067
 
 #motor sprint pid
@@ -69,12 +69,12 @@ Iv = 0.0014 #0.1
 Dv = 0 #0.0067
 
 #motor adjusting pid
-Pa = 0.2
-Ia = 0
+Pa = 0.20 #0.25
+Ia = 0.001
 Da = 0
 
 #motor hitting wall pid
-Pw = 0.2
+Pw = 0.25
 Iw = 0.01
 Dw = 0
 
@@ -184,8 +184,8 @@ def turnRight():
       turn_pid_R = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
 
       #sets target values for the encoder 
-      desiredEncL = pos_L + 215
-      desiredEncR = pos_R - 215
+      desiredEncL = pos_L + 220
+      desiredEncR = pos_R - 220
       #timer stuff
       prev_time = time.perf_counter() - dt_target
       
@@ -222,8 +222,8 @@ def turnLeft():
       turn_pid_R = PID(dt_target, Pt, It, Dt, 35, -35, tau=taupid)
 
       #sets target values for the encoder 
-      desiredEncL = pos_L - 215
-      desiredEncR = pos_R + 215
+      desiredEncL = pos_L - 220
+      desiredEncR = pos_R + 220
       
       #timer stuff
       prev_time = time.perf_counter() - dt_target
@@ -284,7 +284,7 @@ def turnVar(encChangeL, encChangeR):
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
+            if(abs(desiredEncL - pos_L) < 5 and abs(pos_R - desiredEncR) < 5):
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -301,8 +301,8 @@ def forward1():
       move_pid_R = PID(dt_target, Pm, Im, Dm, 35, -35, tau=taupid)
 
       #sets target values for the encoder 
-      desiredEncL = pos_L + 637
-      desiredEncR = pos_R + 637
+      desiredEncL = pos_L + 640
+      desiredEncR = pos_R + 640
       
       
       #timer stuff
@@ -419,7 +419,7 @@ def hitWall(encChangeL, encChangeR):
             time.sleep(dt_target)
             
             #exits loop once desired turn is achieved
-            if(abs(desiredEncL - pos_L) < 7 and abs(pos_R - desiredEncR) < 7):
+            if(abs(desiredEncL - pos_L) < 10 and abs(pos_R - desiredEncR) < 10):
                   resetMotor()
                   #print("Broke out of while loop")
                   break
@@ -444,14 +444,14 @@ def motorMove(leftMotorSpeed, rightMotorSpeed, dt):
       thetaprev_L = thetacurr_L
       thetaprev_R = thetacurr_R
       
-      #print(wcurr_L)
+      print(wcurr_L)
       #print(SpeedL - wcurr_L)
       #print(wcurr_R)
       #print(SpeedR - wcurr_R)
       
       #determines how much to change motor speed in order for the actual speed to be equal to the desired speed
-      output_L = pid_L.control(leftMotorSpeed, wcurr_L)
-      output_R = pid_R.control(rightMotorSpeed, wcurr_R)
+      output_L = pid_L.controlSpeed(leftMotorSpeed, wcurr_L)
+      output_R = pid_R.controlSpeed(rightMotorSpeed, wcurr_R)
       
       #print(output_L)
       #print(output_R)
@@ -601,13 +601,11 @@ class Cell:
                 self.value = array_2d[self.rows - 1][self.cols].value + 1
 
 # setting up base values and the array itself
-#rows, cols = 16, 16
+# rows = 16
+# cols = 16
 rows, cols = 8, 8
 array_2d = [[Cell(j, i) for j in range(cols)] for i in range(rows)]
-# array_2d[7][7].setVal(0)
-# array_2d[8][7].setVal(0)
-# array_2d[7][8].setVal(0)
-# array_2d[8][8].setVal(0)
+# array_2d[8][8].setval(0)
 array_2d[4][4].setVal(0)
 
 
@@ -786,9 +784,6 @@ def resetArrayVals(): # resets the values of the cells in the array (called in c
         for j in range (cols):
             array_2d[i][j].setVal(99)
         if(not override):
-            # array_2d[7][7].setVal(0)
-            # array_2d[8][7].setVal(0)
-            # array_2d[7][8].setVal(0)
             # array_2d[8][8].setVal(0)
             array_2d[4][4].setVal(0)
         else:
@@ -919,6 +914,7 @@ class Mouse: # defines the class of mouse and its base values and methods
             updateArrayWalls()
             resetArrayVals()
             updateArrayVals()
+            findBestPath(self.row, self.col)
         if(self.wallR):
             if(self.direction == "N"):
                 self.currentCell.setWall("E")
@@ -931,6 +927,7 @@ class Mouse: # defines the class of mouse and its base values and methods
             updateArrayWalls()
             resetArrayVals()
             updateArrayVals()
+            findBestPath(self.row, self.col)
         if(self.wallL):
             if(self.direction == "N"):
                 self.currentCell.setWall("W")
@@ -943,6 +940,7 @@ class Mouse: # defines the class of mouse and its base values and methods
             updateArrayWalls()
             resetArrayVals()
             updateArrayVals()
+            findBestPath(self.row, self.col)
           
     def autoAdjustL(self, EncL):
         if(left < 50 and EncL < 630):
@@ -953,15 +951,17 @@ class Mouse: # defines the class of mouse and its base values and methods
             return "1"
         return "0"
     def autoAdjustOnWall(self):
-          if(left < 60 and right < 50):
+          if(((left > 70 and left < 120) or left < 60) and ((right > 75 and right < 120) or right < 50)):
                 turnVar((left - 64)/2, (right - 61)/2)     
     def hitDaWall(self):
           if(front < 90 and front > 30):
-                turnVar(-60, -60)
+                turnVar(-80, -80)
           
       
     def followBestPath(self, real): # follows the best path from the mouse's current position to the center using the cell values(has different modes for mapping and diagonal movement)
         findBestPath(self.row, self.col)
+        mouse1.detectWalls()
+        updateArrayWalls()
         if(real):
             self.hitDaWall()
             if(mapping):
@@ -970,15 +970,15 @@ class Mouse: # defines the class of mouse and its base values and methods
                         self.autoAdjustOnWall()
                         self.moveForward1()
                         return
-                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                    elif(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
                         self.turn90()
                         self.moveForward1()
                         return
-                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                    elif(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
                         self.turnNeg90()
                         self.moveForward1()
                         return
-                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                    elif(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
                         if(left < 61):
                               self.turn90()
                               time.sleep(0.5)
@@ -989,20 +989,22 @@ class Mouse: # defines the class of mouse and its base values and methods
                               self.turnNeg90()
                         self.moveForward1()
                         return
+                    else:
+                          findBestPath(self.row, self.col)
                 if(self.direction == "W"):
                     if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
                         self.autoAdjustOnWall()
                         self.moveForward1()
                         return
-                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                    elif(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
                         self.turnNeg90()
                         self.moveForward1()
                         return
-                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                    elif(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
                         self.turn90()
                         self.moveForward1()
                         return
-                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                    elif(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
                         if(left < 61):
                               self.turn90()
                               time.sleep(0.5)
@@ -1013,20 +1015,22 @@ class Mouse: # defines the class of mouse and its base values and methods
                               self.turnNeg90()
                         self.moveForward1()
                         return
+                    else:
+                          findBestPath(self.row, self.col)
                 if(self.direction == "N"):
                     if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
                         self.autoAdjustOnWall()
                         self.moveForward1()
                         return
-                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                    elif(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
                         self.turn90()
                         self.moveForward1()
                         return
-                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                    elif(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
                         self.turnNeg90()
                         self.moveForward1()
                         return
-                    if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
+                    elif(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
                         if(left < 61):
                               self.turn90()
                               time.sleep(0.5)
@@ -1037,20 +1041,22 @@ class Mouse: # defines the class of mouse and its base values and methods
                               self.turnNeg90()
                         self.moveForward1()
                         return
+                    else:
+                          findBestPath(self.row, self.col)
                 if(self.direction == "S"):
                     if(self.row < rows - 1 and self.maze[self.row + 1][self.col].onBestPath and not self.maze[self.row][self.col].wallS):
                         self.autoAdjustOnWall()
                         self.moveForward1()
                         return
-                    if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
+                    elif(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
                         self.turnNeg90()
                         self.moveForward1()
                         return
-                    if(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
+                    elif(self.col > 0 and self.maze[self.row][self.col - 1].onBestPath and not self.maze[self.row][self.col].wallW):
                         self.turn90()
                         self.moveForward1()
                         return
-                    if(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
+                    elif(self.row > 0 and self.maze[self.row - 1][self.col].onBestPath and not self.maze[self.row][self.col].wallN):
                         if(left < 61):
                               self.turn90()
                               time.sleep(0.5)
@@ -1061,6 +1067,8 @@ class Mouse: # defines the class of mouse and its base values and methods
                               self.turnNeg90()
                         self.moveForward1()
                         return
+                    else:
+                          findBestPath(self.row, self.col)
             else:
                 if(self.direction == "E"):
                     if(self.col < cols - 1 and self.maze[self.row][self.col + 1].onBestPath and not self.maze[self.row][self.col].wallE):
@@ -1226,6 +1234,15 @@ def readMazeFromFile():
         else:
             direction = fileString[i]
         array_2d[col][row].setWall(direction)  
+
+def resetAllWalls():
+  for i in range(cols):
+    for j in range(rows):
+      array_2d[i][j].wallN = False
+      array_2d[i][j].wallE = False
+      array_2d[i][j].wallS = False
+      array_2d[i][j].wallW = False
+
         
 mouse1 = Mouse(array_2d)
 
@@ -1245,13 +1262,15 @@ def loop():
                 global override
                 time.sleep(1)
                 for i in range (99): # main loop
-                    printArrayVals()
-                    print(mouse1.row, mouse1.col, mouse1.currentCell.value, mouse1.currentCell.rows, mouse1.currentCell.cols, mouse1.direction)
                     if(mapping):
+                        findBestPath(mouse1.row, mouse1.col)
                         mouse1.detectWalls()
                         updateArrayWalls()
+                        findBestPath(mouse1.row, mouse1.col)
                         resetArrayVals()
                         updateArrayVals()
+                        findBestPath(mouse1.row, mouse1.col)
+                        printArrayVals()
                     if(mouse1.currentCell.value != 0):
                         mouse1.followBestPath(True)
                     if(GPIO.input(toggle) != GPIO.LOW):
@@ -1266,6 +1285,7 @@ def loop():
                  updateArrayVals()
                  print("EEEEEEEEEEEEEEEEEE")
                  resetMotor()
+                 resetAllWalls()
                  
             
 
@@ -1274,28 +1294,30 @@ def loop():
 # turns during diagonals
 
 
-#                                           def loop():
-      # time.sleep(10)
-      # for i in range(10):
-            # turnLeft()
-            # time.sleep(1)
+# def loop():
+        # motorMove(0, 0, dt)
+        
+      # while(True):
+           # tof()
+           # if(GPIO.input(toggle) == GPIO.LOW):
+                # forwardVar(10000000000000000)
       # time.sleep(60)
            
-      # #turnRight()
-      # #turnLeft()
+      #turnRight()
+      #turnLeft()
       # forward1()
             
-      # # time.sleep(10)
-      # # turnRight()      # print("finished turn left 1")
-      # # time.sleep(0.5)
-      # # turnRight()
-      # # print("finished turn left 2")
-      # # time.sleep(0.5)
-      # # turnRight()
-      # # print("finished turn left 3")
-      # # time.sleep(0.5)
-      # # turnRight()
-      # # print("finished turn left 4")
+      # time.sleep(10)
+      # turnRight()      # print("finished turn left 1")
+      # time.sleep(0.5)
+      # turnRight()
+      # print("finished turn left 2")
+      # time.sleep(0.5)
+      # turnRight()
+      # print("finished turn left 3")
+      # time.sleep(0.5)
+      # turnRight()
+      # print("finished turn left 4")
       # time.sleep(60)
       
 #start everything
