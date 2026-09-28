@@ -127,7 +127,7 @@
         "too_many_vias": "error",
         "track_angle": "error",
         "track_dangling": "warning",
-        "track_not_centered_on_via": "ignore",
+        "track_not_centered_on_via": "error",
         "track_on_post_machined_layer": "error",
         "track_segment_length": "error",
         "track_width": "error",
@@ -650,7 +650,7 @@
         "uuid": "1054ffa4-0d3c-4222-9dda-35d29dac0af1"
       }
     ],
-    "used_designators": "SW1-2,R1-2,J1-5,#PWR1-27,D1,A1-2,U1-6",
+    "used_designators": "SW1-3,R1-3,J1-7,#PWR1-27,C1-5,D1,A1-2,U1-6",
     "variants": []
   },
   "sheets": [
