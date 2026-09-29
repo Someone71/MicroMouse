@@ -5253,6 +5253,12 @@
 		(uuid "8136cf82-e84c-41fd-a8e7-403a9332a6bd")
 	)
 	(junction
+		(at 114.3 113.03)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "82017f74-07ab-4638-9763-0dd7d584fcaa")
+	)
+	(junction
 		(at 66.04 77.47)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5931,6 +5937,16 @@
 			(type default)
 		)
 		(uuid "ba661d00-d67d-4be3-8595-270d4b814afb")
+	)
+	(wire
+		(pts
+			(xy 114.3 113.03) (xy 127 113.03)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bb46ef7c-cafb-4589-b770-5a80c506c30b")
 	)
 	(wire
 		(pts
@@ -8718,6 +8734,85 @@
 			(project "MikeRoemaus"
 				(path "/1054ffa4-0d3c-4222-9dda-35d29dac0af1"
 					(reference "H4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 127 113.03 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "703f7ac6-423f-4945-94da-e35101724375")
+		(property "Reference" "#PWR027"
+			(at 133.35 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 130.81 113.0299 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 127 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 127 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 127 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "f6311060-c5fa-4ae8-80cc-ed1fafac434a")
+		)
+		(instances
+			(project "MikeRoemaus"
+				(path "/1054ffa4-0d3c-4222-9dda-35d29dac0af1"
+					(reference "#PWR027")
 					(unit 1)
 				)
 			)
